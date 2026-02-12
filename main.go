@@ -250,7 +250,9 @@ func handleGetSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding session response: %v", err)
+	}
 }
 
 func handleChat(w http.ResponseWriter, r *http.Request) {
@@ -305,7 +307,11 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error processing chat message: %v", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ChatResponse{Error: err.Error()})
+		if encodeErr := json.NewEncoder(w).Encode(ChatResponse{Error: err.Error()}); encodeErr != nil {
+			log.Printf("Error encoding error response: %v", encodeErr)
+			// Fallback to plain text if JSON encoding fails
+			fmt.Fprintf(w, `{"error": "Failed to encode error response"}`)
+		}
 		return
 	}
 
@@ -313,7 +319,9 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 	chatResponse := ChatResponse{Message: response}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(chatResponse)
+	if err := json.NewEncoder(w).Encode(chatResponse); err != nil {
+		log.Printf("Error encoding chat response: %v", err)
+	}
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -415,10 +423,12 @@ func handleSetGitHubToken(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Set GitHub token for session %s (test endpoint)", req.SessionID)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "GitHub token set successfully",
-	})
+	}); err != nil {
+		log.Printf("Error encoding set token response: %v", err)
+	}
 }
 
 func processChatMessage(session *UserSession, userMessage string) (string, error) {

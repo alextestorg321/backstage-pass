@@ -368,8 +368,10 @@ func (m *MCPClientWrapper) CallTool(ctx context.Context, toolName string, argume
 	}
 
 	// Log the full result structure for debugging (first 500 chars)
-	resultJSON, _ := json.Marshal(result)
-	if len(resultJSON) > 500 {
+	resultJSON, err := json.Marshal(result)
+	if err != nil {
+		log.Printf("Error marshaling result for tool %s: %v", toolName, err)
+	} else if len(resultJSON) > 500 {
 		log.Printf("Tool %s full result (first 500 chars): %s", toolName, string(resultJSON[:500]))
 	} else {
 		log.Printf("Tool %s full result: %s", toolName, string(resultJSON))
@@ -584,7 +586,10 @@ func (m *MCPClientWrapper) sendNotification(req MCPRequest) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("notification returned status %d and failed to read body: %w", resp.StatusCode, err)
+		}
 		return fmt.Errorf("notification returned status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -734,7 +739,10 @@ func (m *MCPClientWrapper) getAuthenticatedUserInfo(ctx context.Context) (string
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", fmt.Errorf("GitHub API error (status %d) and failed to read body: %w", resp.StatusCode, err)
+		}
 		return "", fmt.Errorf("GitHub API error: %s", string(body))
 	}
 
@@ -1247,8 +1255,12 @@ func (m *MCPClientWrapper) extractToolArguments(query string, tool *MCPTool) map
 
 	// Log the tool's input schema to see what parameters it expects
 	if tool.InputSchema != nil {
-		schemaJSON, _ := json.Marshal(tool.InputSchema)
-		log.Printf("Tool %s input schema: %s", tool.Name, string(schemaJSON))
+		schemaJSON, err := json.Marshal(tool.InputSchema)
+		if err != nil {
+			log.Printf("Error marshaling input schema for tool %s: %v", tool.Name, err)
+		} else {
+			log.Printf("Tool %s input schema: %s", tool.Name, string(schemaJSON))
+		}
 	}
 
 	// Extract common arguments from query
