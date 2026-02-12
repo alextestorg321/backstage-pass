@@ -310,7 +310,7 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 		if encodeErr := json.NewEncoder(w).Encode(ChatResponse{Error: err.Error()}); encodeErr != nil {
 			log.Printf("Error encoding error response: %v", encodeErr)
 			// Fallback to plain text if JSON encoding fails
-			fmt.Fprintf(w, `{"error": "Internal server error"}`)
+			fmt.Fprintf(w, `{"error": "Failed to encode error response"}`)
 		}
 		return
 	}
